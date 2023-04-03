@@ -14,8 +14,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Log into GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${GITHUB_ACTOR,,} --password-stdin
+      - name: Log into Kubernetes Container Registry
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login registry.k8s.io -u ${REGISTRY_USER} --password-stdin
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -30,7 +30,18 @@ jobs:
           echo "Release Tag: ${{ github.ref_name }}" 
           curl -sSL https://doc.crds.dev/github.com/oracle/cluster-api-provider-oci@${{ github.ref_name }}
 
+      - name: Build and push Docker image
+        run: |
+          docker build -t registry.k8s.io/${{ env.REGISTRY_NAMESPACE }}/${{ env.REGISTRY_IMAGE }}:${{ env.REGISTRY_TAG }} .
+          docker push registry.k8s.io/${{ env.REGISTRY_NAMESPACE }}/${{ env.REGISTRY_IMAGE }}:${{ env.REGISTRY_TAG }}
+        env:
+          REGISTRY_USER: your-registry-username
+          REGISTRY_NAMESPACE: your-registry-namespace
+          REGISTRY_IMAGE: your-image-name
+          REGISTRY_TAG: ${{ github.ref_name }}
+
       - uses: actions/upload-artifact@v2
         with:
           name: CAPOCI Artifacts
           path: out/
+
